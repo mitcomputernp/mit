@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Exam Seating Generator</title>
+
+<style>
+
+body{
+font-family: Arial;
+background:#f2f2f2;
+text-align:center;
+}
+
+.container{
+width:1100px;
+margin:auto;
+background:white;
+padding:20px;
+}
+
+h1{
+margin-bottom:10px;
+}
+
+input{
+width:120px;
+padding:5px;
+margin:5px;
+}
+
+button{
+padding:10px 20px;
+margin:10px;
+background:#1f6ed4;
+color:white;
+border:none;
+cursor:pointer;
+}
+
+table{
+border-collapse:collapse;
+margin:auto;
+margin-top:20px;
+}
+
+td{
+border:1px solid black;
+padding:12px 25px;
+font-weight:bold;
+}
+
+.header{
+font-size:20px;
+font-weight:bold;
+padding:10px;
+}
+
+.blank{
+border:none;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Exam Seating Pattern Generator</h1>
+
+Room No:
+<input id="room" value="01">
+
+Date:
+<input type="date" id="date">
+
+<h3>Enter Ranges</h3>
+
+5A <input id="a5" value="1-8">
+6A <input id="a6" value="1-8">
+7A <input id="a7" value="1-8">
+
+<br>
+
+8A <input id="a8" value="1-8">
+9A <input id="a9" value="1-8,49">
+10A <input id="a10" value="1-8">
+
+<br>
+
+<button onclick="generate()">Generate</button>
+<button onclick="window.print()">Print</button>
+
+<div id="result"></div>
+
+</div>
+
+<script>
+
+function parseRange(text){
+
+let numbers=[]
+
+let parts=text.split(",")
+
+for(let p of parts){
+
+if(p.includes("-")){
+
+let [start,end]=p.split("-").map(Number)
+
+for(let i=start;i<=end;i++){
+numbers.push(i)
+}
+
+}else{
+
+numbers.push(Number(p))
+
+}
+
+}
+
+return numbers
+
+}
+
+function generate(){
+
+let room=document.getElementById("room").value
+let date=document.getElementById("date").value
+
+let A5=parseRange(document.getElementById("a5").value)
+let A6=parseRange(document.getElementById("a6").value)
+let A7=parseRange(document.getElementById("a7").value)
+
+let A8=parseRange(document.getElementById("a8").value)
+let A9=parseRange(document.getElementById("a9").value)
+let A10=parseRange(document.getElementById("a10").value)
+
+let rows=Math.max(A5.length,A6.length,A7.length,A8.length,A9.length,A10.length)
+
+let html="<table>"
+
+html+="<tr><td colspan='7' class='header'>Room No - "+room+" &nbsp;&nbsp;&nbsp;&nbsp; Date: "+date+"</td></tr>"
+
+for(let i=0;i<rows;i++){
+
+html+="<tr>"
+
+html+="<td>"+(A5[i]?A5[i]+"/5A":"")+"</td>"
+html+="<td>"+(A6[i]?A6[i]+"/6A":"")+"</td>"
+html+="<td>"+(A7[i]?A7[i]+"/7A":"")+"</td>"
+
+html+="<td class='blank'></td>"
+
+html+="<td>"+(A8[i]?A8[i]+"/8A":"")+"</td>"
+html+="<td>"+(A9[i]?A9[i]+"/9A":"")+"</td>"
+html+="<td>"+(A10[i]?A10[i]+"/10A":"")+"</td>"
+
+html+="</tr>"
+
+}
+
+html+="</table>"
+
+document.getElementById("result").innerHTML=html
+
+}
+
+</script>
+
+</body>
+</html>
