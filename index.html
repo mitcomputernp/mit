@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>School Board Exam Seating System</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+body{font-family:Arial;margin:0;background:#eef2f7}
+header{background:#1e3a8a;color:white;padding:15px;text-align:center;font-size:22px}
+.container{width:1200px;margin:auto;background:white;padding:20px}
+.section{margin-bottom:25px}
+label{font-weight:bold}
+input,select{padding:6px;margin:6px}
+button{padding:10px 18px;margin:8px;background:#2563eb;color:white;border:none;cursor:pointer}
+table{border-collapse:collapse;margin-top:15px;width:100%}
+td,th{border:1px solid #333;padding:8px;text-align:center}
+th{background:#e5e7eb}
+.room{margin-top:40px}
+.room-title{font-size:18px;font-weight:bold;margin-bottom:5px}
+</style>
+</head>
+
+<body>
+<header>Board Exam Seating Management System</header>
+
+<div class="container">
+
+<div class="section">
+<h3>1. Upload Student File (Excel or CSV)</h3>
+<input type="file" id="fileInput">
+</div>
+
+<div class="section">
+<h3>2. Exam Settings</h3>
+<label>Exam Name</label>
+<input id="examName" placeholder="Final Board Exam">
+
+<label>Date</label>
+<input type="date" id="examDate">
+
+<br>
+
+<label>Room Start Number</label>
+<input id="roomStart" value="1">
+
+<label>Total Rooms</label>
+<input id="rooms" value="5">
+
+<label>Seats Per Room</label>
+<input id="seats" value="48">
+
+</div>
+
+<div class="section">
+<button onclick="loadFile()">Generate Seating Plan</button>
+<button onclick="downloadExcel()">Download Excel Report</button>
+<button onclick="downloadPDF()">Download PDF</button>
+<button onclick="window.print()">Print</button>
+</div>
+
+<div id="summary"></div>
+<div id="output"></div>
+
+</div>
+
+<script>
+
+let students=[]
+let arrangedStudents=[]
+
+function loadFile(){
+
+let file=document.getElementById("fileInput").files[0]
+
+if(!file){
+alert("Upload Excel or CSV file first")
+return
+}
+
+let reader=new FileReader()
+
+reader.onload=function(e){
+
+let data=new Uint8Array(e.target.result)
+let workbook=XLSX.read(data,{type:'array'})
+
+let sheet=workbook.Sheets[workbook.SheetNames[0]]
+let rows=XLSX.utils.sheet_to_json(sheet,{header:1})
+
+students=[]
+
+for(let i=1;i<rows.length;i++){
+
+let roll=rows[i][0]
+let cls=rows[i][1]
+
+if(roll && cls){
+students.push({roll:roll,class:cls})
+}
+
+}
+
+smartMix()
+generateRooms()
+showSummary()
+
+}
+
+reader.readAsArrayBuffer(file)
+
+}
+
+function smartMix(){
+
+let groups={}
+
+students.forEach(s=>{
+if(!groups[s.class]) groups[s.class]=[]
+groups[s.class].push(s)
+})
+
+arrangedStudents=[]
+
+while(true){
+
+let added=false
+
+for(let g in groups){
+
+if(groups[g].length>0){
+arrangedStudents.push(groups[g].shift())
+added=true
+}
+
+}
+
+if(!added) break
+
+}
+
+}
+
+function showSummary(){
+
+let classes={}
+
+students.forEach(s=>{
+if(!classes[s.class]) classes[s.class]=0
+classes[s.class]++
+})
+
+let html="<h3>Student Summary</h3><table><tr><th>Class</th><th>Total</th></tr>"
+
+for(let c in classes){
+html+=`<tr><td>${c}</td><td>${classes[c]}</td></tr>`
+}
+
+html+="</table>"
+
+html+=`<p><b>Total Students:</b> ${students.length}</p>`
+
+
+document.getElementById("summary").innerHTML=html
+
+}
+
+function generateRooms(){
+
+let exam=document.getElementById("examName").value
+let date=document.getElementById("examDate").value
+
+let roomStart=parseInt(document.getElementById("roomStart").value)
+let roomCount=parseInt(document.getElementById("rooms").value)
+let seats=parseInt(document.getElementById("seats").value)
+
+let index=0
+let html=""
+
+for(let r=0;r<roomCount;r++){
+
+let roomNo=roomStart+r
+
+html+=`<div class='room'>`
+html+=`<div class='room-title'>${exam} | Room ${roomNo} | ${date}</div>`
+html+="<table>"
+
+let rows=seats/6
+
+for(let i=0;i<rows;i++){
+
+html+="<tr>"
+
+for(let j=0;j<6;j++){
+
+if(index<arrangedStudents.length){
+
+let s=arrangedStudents[index++]
+html+=`<td>${s.roll}/${s.class}</td>`
+
+}else{
+
+html+="<td></td>"
+
+}
+
+}
+
+html+="</tr>"
+
+}
+
+html+="</table></div>"
+
+}
+
+
+document.getElementById("output").innerHTML=html
+
+}
+
+function downloadExcel(){
+
+let data=[["Seat","Student"]]
+
+arrangedStudents.forEach((s,i)=>{
+
+let seat=i+1
+
+let value=s.roll+"/"+s.class
+
+data.push([seat,value])
+
+})
+
+let ws=XLSX.utils.aoa_to_sheet(data)
+let wb=XLSX.utils.book_new()
+XLSX.utils.book_append_sheet(wb,ws,"Seating")
+
+XLSX.writeFile(wb,"exam_seating.xlsx")
+
+}
+
+function downloadPDF(){
+
+const {jsPDF}=window.jspdf
+let doc=new jsPDF()
+
+doc.text("Exam Seating Plan",20,20)
+
+let y=30
+
+arrangedStudents.forEach((s,i)=>{
+
+let text=(i+1)+"  "+s.roll+"/"+s.class
+
+doc.text(text,20,y)
+
+y+=6
+
+if(y>280){
+
+doc.addPage()
+y=20
+
+}
+
+})
+
+doc.save("seating_plan.pdf")
+
+}
+
+</script>
+
+</body>
+</html>
